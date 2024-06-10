@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="fose">
+      <UniqueIdentifier>{92a4f350-f2ec-4fca-bdd3-927732d91b34}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="common\SafeWrite.cpp">
+      <Filter>fose</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="common\SafeWrite.h">
+      <Filter>fose</Filter>
+    </ClInclude>
+    <ClInclude Include="fps.h" />
+    <ClInclude Include="calls.h" />
+  </ItemGroup>
+</Project>
