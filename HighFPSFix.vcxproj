@@ -123,7 +123,7 @@
     <PostBuildEvent>
       <Message>
       </Message>
-      <Command>copy "$(TargetPath)" "C:\Users\user\AppData\Local\ModOrganizer\Fallout 3\mods\High FPS Fix\fose\plugins\$(TargetFileName)"</Command>
+      <Command>copy "$(TargetPath)" "C:\Users\ykzmd\AppData\Local\ModOrganizer\Fallout 3\mods\High FPS Fix\fose\plugins\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

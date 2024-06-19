@@ -1,7 +1,7 @@
 #pragma once
 #include <chrono>
 
-double g_iMaxFPSTolerance = 300;
+double g_iMaxFPSTolerance = 800;
 double g_iMinFPSTolerance = 5;
 double fDesiredMin = 1;
 double fDesiredMax = 1000;
@@ -107,6 +107,28 @@ void* __stdcall TimeGlobalHook() {
 	return ThisStdCall<void*>(0x7F92A0, nullptr);
 }
 
+void FastExit()
+{
+	TerminateProcess(GetCurrentProcess(), 0);
+}
+
+void RemoveRenderer180CriticalSections()
+{
+	SafeWrite16(0x873165, 0x0BEB);
+	SafeWrite8(0x87317C, 0x13);
+	SafeWrite16(0x873189, 0x05EB);
+
+	SafeWrite16(0x88B92F, 0x0BEB);
+	SafeWrite8(0x88B942, 0x2F);
+	SafeWrite8(0x88B954, 0x4E);
+	SafeWrite16(0x88B96B, 0x05EB);
+
+	SafeWrite16(0x88BA7A, 0x0BEB);
+	SafeWrite8(0x88BA8D, 0x28);
+	SafeWrite8(0x88BA9F, 0x5);
+	SafeWrite16(0x88BAAF, 0x05EB);
+}
+
 
 void WritePatches() {
 
@@ -119,6 +141,8 @@ void WritePatches() {
 	fMaxTimeDefault = *fMaxTime;
 
 	WriteRelCall(0x6EDC02, (uintptr_t)TimeGlobalHook);
-	
+
+	WriteRelJump(0x6EED54, UInt32(FastExit));
+	RemoveRenderer180CriticalSections();
 	
 }
