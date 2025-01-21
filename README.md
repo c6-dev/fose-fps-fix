@@ -2,7 +2,7 @@
 
 Fixes gameplay issues that occur in Fallout 3 when the game is running at framerates over 60.    
 
-To learn how to configure the game and your drivers for the best possible performance, read and follow [The Performance Guide](https://performance.moddinglinked.com/falloutnv.html) - most of it applies to both New Vegas and Fallout 3.
+To learn how to configure the game and your drivers for the best possible performance, read and follow [The Performance Guide](https://performance.moddinglinked.com/falloutnv.html#DriversAndOS) - most of it applies to both New Vegas and Fallout 3.
 
 Ported from [New Vegas Tick Fix](https://www.nexusmods.com/newvegas/mods/66537).  
 
