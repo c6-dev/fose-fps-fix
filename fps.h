@@ -1,114 +1,155 @@
 #pragma once
 #include <chrono>
+#include "SafeWrite.h"
 
-double g_iMaxFPSTolerance = 800;
-double g_iMinFPSTolerance = 5;
-double fDesiredMin = 1;
-double fDesiredMax = 1000;
-float fLowerMaxTimeBoundary = 0.016;
-float fMaxTimeDefault = 0;
-constexpr float fTimerOffsetMult = 0.9875;
-
-float* g_FPSGlobal = (float*)0x1090BA4;
 float* fMaxTime = (float*)0x10F2BE8;
-
-DWORD** InterfSingleton = (DWORD**)0x1075B24;
 DWORD** BGSLoadGameSingleton = (DWORD**)0x1079858;
-
-bool* g_DialogMenu = (bool*)0x107613C;
-bool* g_DialogMenu2 = (bool*)0x107A0F4;
-bool* g_bIsMenuMode = (bool*)0x107A0F3;
-bool* g_bIsInPauseFade = (bool*)0x107A0F5;
 bool* g_bIsLoadingNewGame = (bool*)0x1075A07;
 
+float fMaxTimeDefault = 0.f;
+constexpr float fTimerOffsetMult = 0.9875f;
+double dMaxTimeLowerBoundaryS = 0.016;
+double dMaxFPSTolerance = 800;
+double dMinFPSTolerance = 5;
+double	dMaxTimeLowerBoundaryMS = 16;
+double	dDesiredMaxMS = 1.25;
+double	dDesiredMinMS = 200;
+double	dDesiredMaxS = 0.00125;
+double	dDesiredMinS = 0.2;
+
 namespace QPC {
+	LARGE_INTEGER	liFrequency;
+	double			dLastCount = 0;
 
-	double lastCount = 0;
-	signed int tickCountBias = 0;
-	using namespace std::chrono;
-
-	void StartCounter()
-	{
-		auto now = duration_cast<milliseconds>(duration_cast<milliseconds>(time_point_cast<milliseconds>(steady_clock::now()).time_since_epoch()));
-		long duration = now.count();
-
-
-		QPC::tickCountBias = duration - long(GetTickCount()); //this will fail if your system was started 53 or more days ago
-		QPC::lastCount = duration;
-
-	}
-	DWORD ReturnCounter()
-	{
-		auto now = duration_cast<milliseconds>(duration_cast<milliseconds>(time_point_cast<milliseconds>(steady_clock::now()).time_since_epoch()));
-		return unsigned long(now.count() + tickCountBias);
+	double GetTime() {
+		LARGE_INTEGER liCounter;
+		QueryPerformanceCounter(&liCounter);
+		return double(liCounter.QuadPart) / double(liFrequency.QuadPart);
 	}
 
-	double UpdateCounterMS()
-	{
-
-		auto now = duration_cast<nanoseconds>(duration_cast<nanoseconds>(time_point_cast<nanoseconds>(steady_clock::now()).time_since_epoch()));
-		double currentCount = double(now.count()) / 1000000;
-		double toReturn = currentCount - lastCount;
-		lastCount = currentCount;
-		return toReturn;
-
+	double GetTimeMS() {
+		return GetTime() * 1000.0;
 	}
 
+	DWORD ReturnCounter() {
+		return GetTimeMS();
+	}
+
+	double GetTimeDelta() {
+		double dCurrentCount = GetTimeMS();
+		double dToReturn = dCurrentCount - dLastCount;
+		dLastCount = dCurrentCount;
+		return dToReturn;
+	}
+
+	void Initialize() {
+		QueryPerformanceFrequency(&liFrequency);
+		dLastCount = GetTimeMS();
+	}
+}
+
+bool IsInPauseFade() {
+	return *reinterpret_cast<bool*>(0x107A0F5);
 }
 
 
-void* __stdcall TimeGlobalHook() {
+class BSTimer {
+public:
+	uint8_t		ucDisableCounter;
+	float		fClamp;
+	float		fClampRemainder;
+	float		fRealTimeDelta;
+	uint32_t	uiLastTime;
+	uint32_t	uiFirstTime;
+	bool		bIsChangeTimeMultSlowly;
+	bool		bSameFrameDelta;
 
-	double delta = QPC::UpdateCounterMS();
-	
-	if (delta <= FLT_EPSILON) {
-		*fMaxTime = fLowerMaxTimeBoundary;
+	void Update(uint32_t auiTime) {
+		ThisCall(0x86C280, this, auiTime);
 	}
-	else if (delta >= fDesiredMax) {
-		*fMaxTime = fDesiredMax / 1000;
-	}
-	else if (delta <= fDesiredMin) {
-		*fMaxTime = fDesiredMin / 1000;
-	}
-	else {
-		*fMaxTime = delta / 1000;
-	}
-	
-	if ((*BGSLoadGameSingleton && (*(*BGSLoadGameSingleton + 0x91) & 2) != 0) || *g_bIsLoadingNewGame || delta <= 0) {
-		*g_FPSGlobal = 0;
-	} 
-	else if (delta >= fDesiredMax) {
-		*g_FPSGlobal = fDesiredMax;
-	} 
-	else if (delta <= fDesiredMin) {
-		*g_FPSGlobal = fDesiredMin;
-	} 
-	else {
-		*g_FPSGlobal = delta;
-	}
-	
-	if (*g_FPSGlobal > FLT_EPSILON)
-	{
-		*g_FPSGlobal = 1000 / ((1000 / *g_FPSGlobal) * fTimerOffsetMult);
-		*fMaxTime = 1000 / ((1000 / *fMaxTime) * fTimerOffsetMult);
+};
 
-		if (*fMaxTime < FLT_EPSILON) {
-			*fMaxTime = FLT_EPSILON;
+static_assert(sizeof(BSTimer) == 0x1C);
+
+class BSTimerSafe : public BSTimer {
+public:
+	void TimeGlobalHook() {
+		double dDelta = QPC::GetTimeDelta();
+
+
+		float lfMaxTime = dMaxTimeLowerBoundaryS;
+		if (dDelta > FLT_EPSILON) {
+			if (dDelta < dDesiredMinMS) {
+				lfMaxTime = dDelta > dDesiredMaxMS ? (dDelta / 1000.0) : dDesiredMaxS;
+			}
+			else {
+				lfMaxTime = dDesiredMinS;
+			}
 		}
 
-	}
-	if (*g_bIsInPauseFade || *g_FPSGlobal < FLT_EPSILON) {
-		*fMaxTime = fMaxTimeDefault;
-	}
-	else if (*fMaxTime > fLowerMaxTimeBoundary) {
-		*fMaxTime = fLowerMaxTimeBoundary;
+		*fMaxTime = lfMaxTime;
+
+
+		fClamp = 0.f;
+
+		bool bSaveLoading = (*BGSLoadGameSingleton && (*(*BGSLoadGameSingleton + 0x91) & 2) != 0);
+		if (!bSaveLoading && !*g_bIsLoadingNewGame && dDelta > 0.f) {
+			if (dDelta < dDesiredMinMS) {
+				fClamp = dDelta > dDesiredMaxMS ? dDelta : dDesiredMaxMS;
+			} else {
+				fClamp = dDesiredMinMS;
+			}
+		}
+
+
+		if (fClamp > FLT_EPSILON) {
+			fClamp = 1000.f / ((1000.f / fClamp) * fTimerOffsetMult);
+
+			*fMaxTime = 1000.f / ((1000.f / *fMaxTime) * fTimerOffsetMult);
+			if (*fMaxTime < FLT_EPSILON) {
+				*fMaxTime = FLT_EPSILON;
+			}
+
+		}
+
+		if (IsInPauseFade() || fClamp < FLT_EPSILON) {
+			*fMaxTime = fMaxTimeDefault;
+		} else if (*fMaxTime > dMaxTimeLowerBoundaryS) {
+			*fMaxTime = dMaxTimeLowerBoundaryS;
+		}
+
+		Update(QPC::ReturnCounter());
 	}
 
-	return ThisStdCall<void*>(0x7F92A0, nullptr);
-}
+};
+
+class StartMenu {
+public:
+	char		padding[0x1A0];
+	uint32_t	uiFlags;
+
+	static StartMenu* GetSingleton() {
+		return *reinterpret_cast<StartMenu**>(0x10770AC);
+	}
+
+	bool GetSettingsChanged() const {
+		return uiFlags & 2;
+	}
+
+	static void SaveSettings() {
+		CdeclCall(0x6806F0);
+	}
+};
+
+static_assert(offsetof(StartMenu, uiFlags) == 0x1A0);
+
 
 void FastExit()
 {
+	StartMenu* pStartMenu = StartMenu::GetSingleton();
+	if (pStartMenu && pStartMenu->GetSettingsChanged())
+		pStartMenu->SaveSettings();
+
 	TerminateProcess(GetCurrentProcess(), 0);
 }
 
@@ -133,14 +174,12 @@ void RemoveRenderer180CriticalSections()
 void WritePatches() {
 
 	
-	QPC::StartCounter();
+	QPC::Initialize();
 	SafeWrite32(0xD9B090, (uintptr_t)QPC::ReturnCounter);
 
-	fDesiredMin = 1000.0 / g_iMaxFPSTolerance;
-	fDesiredMax = 1000.0 / g_iMinFPSTolerance;
 	fMaxTimeDefault = *fMaxTime;
 
-	WriteRelCall(0x6EDC02, (uintptr_t)TimeGlobalHook);
+	ReplaceCallEx(0x6E43C7, &BSTimerSafe::TimeGlobalHook);
 
 	WriteRelJump(0x6EED54, UInt32(FastExit));
 	RemoveRenderer180CriticalSections();

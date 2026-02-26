@@ -7,7 +7,7 @@ extern "C" {
 	__declspec(dllexport) bool FOSEPlugin_Query(const FOSEInterface* fose, PluginInfo* info) {
 		info->infoVersion = PluginInfo::kInfoVersion;
 		info->name = "HighFpsFix";
-		info->version = 100;
+		info->version = 120;
 		return true;
 	}
 

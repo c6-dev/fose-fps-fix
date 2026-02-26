@@ -1,6 +1,12 @@
 #pragma once
 // thread-safe template versions of ThisStdCall()
 
+template <typename T_Ret = uint32_t, typename ...Args>
+__forceinline T_Ret ThisCall(uint32_t _addr, const void* _this, Args ...args)
+{
+	return ((T_Ret(__thiscall*)(const void*, Args...))_addr)(_this, std::forward<Args>(args)...);
+}
+
 template <typename T_Ret = void, typename ...Args>
 __forceinline T_Ret ThisStdCall(UInt32 _addr, void* _this, Args ...args) {
 	class T {};

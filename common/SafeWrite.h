@@ -38,4 +38,16 @@ DECLSPEC_NOINLINE void ReplaceCall(UInt32 jumpSrc, T jumpTgt)
 	ReplaceCall(jumpSrc, (UInt32)jumpTgt);
 }
 
+template <typename C, typename Ret, typename... Args>
+void ReplaceCallEx(SIZE_T source, Ret(C::* const target)(Args...)) {
+	union
+	{
+		Ret(C::* tgt)(Args...);
+		SIZE_T funcPtr;
+	} conversion;
+	conversion.tgt = target;
+
+	ReplaceCall(source, conversion.funcPtr);
+}
+
 void ReplaceVirtualFunc(UInt32 jumpSrc, void* jumpTgt);
