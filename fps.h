@@ -1,21 +1,28 @@
 #pragma once
-#include <chrono>
 #include "SafeWrite.h"
 
-float* fMaxTime = (float*)0x10F2BE8;
-DWORD** BGSLoadGameSingleton = (DWORD**)0x1079858;
-bool* g_bIsLoadingNewGame = (bool*)0x1075A07;
+#pragma comment(lib, "winmm.lib")
+
+float* const g_fMaxTime = reinterpret_cast<float*>(0x1267B38);
 
 float fMaxTimeDefault = 0.f;
 constexpr float fTimerOffsetMult = 0.9875f;
 double dMaxTimeLowerBoundaryS = 0.016;
-double dMaxFPSTolerance = 800;
+double dMaxFPSTolerance = 300;
 double dMinFPSTolerance = 5;
-double	dMaxTimeLowerBoundaryMS = 16;
-double	dDesiredMaxMS = 1.25;
-double	dDesiredMinMS = 200;
-double	dDesiredMaxS = 0.00125;
-double	dDesiredMinS = 0.2;
+double	dMaxTimeLowerBoundaryMS = 0;
+double	dDesiredMaxMS = 0;
+double	dDesiredMinMS = 0;
+double	dDesiredMaxS = 0;
+double	dDesiredMinS = 0;
+
+bool IsInPauseFade() {
+	return *reinterpret_cast<bool*>(0x107A0F5);
+}
+
+bool IsLoadingNewGame() {
+	return *reinterpret_cast<bool*>(0x1075A07);
+}
 
 namespace QPC {
 	LARGE_INTEGER	liFrequency;
@@ -48,11 +55,6 @@ namespace QPC {
 	}
 }
 
-bool IsInPauseFade() {
-	return *reinterpret_cast<bool*>(0x107A0F5);
-}
-
-
 class BSTimer {
 public:
 	uint8_t		ucDisableCounter;
@@ -71,57 +73,21 @@ public:
 
 static_assert(sizeof(BSTimer) == 0x1C);
 
-class BSTimerSafe : public BSTimer {
+class BGSSaveLoadGame {
 public:
-	void TimeGlobalHook() {
-		double dDelta = QPC::GetTimeDelta();
+	char		padding[0x244];
+	uint32_t	uiGlobalFlags;
+	uint8_t		ucCurrentMinorVersion;
 
-
-		float lfMaxTime = dMaxTimeLowerBoundaryS;
-		if (dDelta > FLT_EPSILON) {
-			if (dDelta < dDesiredMinMS) {
-				lfMaxTime = dDelta > dDesiredMaxMS ? (dDelta / 1000.0) : dDesiredMaxS;
-			}
-			else {
-				lfMaxTime = dDesiredMinS;
-			}
-		}
-
-		*fMaxTime = lfMaxTime;
-
-
-		fClamp = 0.f;
-
-		bool bSaveLoading = (*BGSLoadGameSingleton && (*(*BGSLoadGameSingleton + 0x91) & 2) != 0);
-		if (!bSaveLoading && !*g_bIsLoadingNewGame && dDelta > 0.f) {
-			if (dDelta < dDesiredMinMS) {
-				fClamp = dDelta > dDesiredMaxMS ? dDelta : dDesiredMaxMS;
-			} else {
-				fClamp = dDesiredMinMS;
-			}
-		}
-
-
-		if (fClamp > FLT_EPSILON) {
-			fClamp = 1000.f / ((1000.f / fClamp) * fTimerOffsetMult);
-
-			*fMaxTime = 1000.f / ((1000.f / *fMaxTime) * fTimerOffsetMult);
-			if (*fMaxTime < FLT_EPSILON) {
-				*fMaxTime = FLT_EPSILON;
-			}
-
-		}
-
-		if (IsInPauseFade() || fClamp < FLT_EPSILON) {
-			*fMaxTime = fMaxTimeDefault;
-		} else if (*fMaxTime > dMaxTimeLowerBoundaryS) {
-			*fMaxTime = dMaxTimeLowerBoundaryS;
-		}
-
-		Update(QPC::ReturnCounter());
+	static BGSSaveLoadGame* GetSingleton() {
+		return *reinterpret_cast<BGSSaveLoadGame**>(0x1079858);
 	}
-
+	bool IsLoading() const {
+		return (uiGlobalFlags & 2) != 0;
+	}
 };
+
+static_assert(sizeof(BGSSaveLoadGame) == 0x24C);
 
 class StartMenu {
 public:
@@ -143,6 +109,57 @@ public:
 
 static_assert(offsetof(StartMenu, uiFlags) == 0x1A0);
 
+void ClampGameCounters(float& fClamp) {
+	float& fMaxTime = *g_fMaxTime;
+	if (fClamp > FLT_EPSILON) {
+		fClamp = 1000.f / ((1000.f / fClamp) * fTimerOffsetMult);
+		fMaxTime = 1000.f / ((1000.f / fMaxTime) * fTimerOffsetMult);
+		if (fMaxTime < FLT_EPSILON) {
+			fMaxTime = FLT_EPSILON;
+		}
+	}
+
+	if (IsInPauseFade() || fClamp < FLT_EPSILON) {
+		fMaxTime = fMaxTimeDefault;
+	} else if (fMaxTime > dMaxTimeLowerBoundaryS) {
+		fMaxTime = dMaxTimeLowerBoundaryS;
+	}
+	
+}
+class BSTimerSafe : public BSTimer {
+public:
+	void TimeGlobalHook() {
+		double dDelta = QPC::GetTimeDelta();
+
+		float fMaxTime = dMaxTimeLowerBoundaryS;
+		if (dDelta > FLT_EPSILON) {
+			if (dDelta < dDesiredMinMS) {
+				fMaxTime = dDelta > dDesiredMaxMS ? (dDelta / 1000.0) : dDesiredMaxS;
+			}
+			else {
+				fMaxTime = dDesiredMinS;
+			}
+		}
+
+		*g_fMaxTime = fMaxTime;
+
+		fClamp = 0.f;
+
+		BGSSaveLoadGame* pSaveLoad = BGSSaveLoadGame::GetSingleton();
+		bool bSaveLoading = pSaveLoad && pSaveLoad->IsLoading();
+		if (!bSaveLoading && !IsLoadingNewGame() && dDelta > 0.f) {
+			if (dDelta < dDesiredMinMS)
+				fClamp = dDelta > dDesiredMaxMS ? dDelta : dDesiredMaxMS;
+			else
+				fClamp = dDesiredMinMS;
+		}
+
+		ClampGameCounters(fClamp);
+
+		Update(QPC::ReturnCounter());
+	}
+
+};
 
 void FastExit()
 {
@@ -153,35 +170,20 @@ void FastExit()
 	TerminateProcess(GetCurrentProcess(), 0);
 }
 
-void RemoveRenderer180CriticalSections()
-{
-	SafeWrite16(0x873165, 0x0BEB);
-	SafeWrite8(0x87317C, 0x13);
-	SafeWrite16(0x873189, 0x05EB);
-
-	SafeWrite16(0x88B92F, 0x0BEB);
-	SafeWrite8(0x88B942, 0x2F);
-	SafeWrite8(0x88B954, 0x4E);
-	SafeWrite16(0x88B96B, 0x05EB);
-
-	SafeWrite16(0x88BA7A, 0x0BEB);
-	SafeWrite8(0x88BA8D, 0x28);
-	SafeWrite8(0x88BA9F, 0x5);
-	SafeWrite16(0x88BAAF, 0x05EB);
-}
-
 
 void WritePatches() {
-
 	
 	QPC::Initialize();
 	SafeWrite32(0xD9B090, (uintptr_t)QPC::ReturnCounter);
 
-	fMaxTimeDefault = *fMaxTime;
-
+	fMaxTimeDefault = *g_fMaxTime;
+	dDesiredMaxMS = 1000.0 / dMaxFPSTolerance;
+	dDesiredMinMS = 1000.0 / dMinFPSTolerance;
+	dDesiredMaxS = dDesiredMaxMS / 1000.0;
+	dDesiredMinS = dDesiredMinMS / 1000.0;
+	dMaxTimeLowerBoundaryMS = dMaxTimeLowerBoundaryS * 1000.0;
 	ReplaceCallEx(0x6E43C7, &BSTimerSafe::TimeGlobalHook);
 
 	WriteRelJump(0x6EED54, UInt32(FastExit));
-	RemoveRenderer180CriticalSections();
 	
 }
