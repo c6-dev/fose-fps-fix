@@ -5,16 +5,16 @@
 
 float* const g_fMaxTime = reinterpret_cast<float*>(0x10F2BE8);
 
-float fMaxTimeDefault = 0.f;
+inline float fMaxTimeDefault = 0.f;
 constexpr float fTimerOffsetMult = 0.9875f;
-double dMaxTimeLowerBoundaryS = 0.016;
-double dMaxFPSTolerance = 300;
-double dMinFPSTolerance = 5;
-double	dMaxTimeLowerBoundaryMS = 0;
-double	dDesiredMaxMS = 0;
-double	dDesiredMinMS = 0;
-double	dDesiredMaxS = 0;
-double	dDesiredMinS = 0;
+constexpr float fMaxTimeLowerBoundaryS = 0.016f;
+inline double dMaxFPSTolerance = 300;
+inline double dMinFPSTolerance = 5;
+inline double dMaxTimeLowerBoundaryMS = 0;
+inline double dDesiredMaxMS = 0;
+inline double dDesiredMinMS = 0;
+inline double dDesiredMaxS = 0;
+inline double dDesiredMinS = 0;
 
 bool IsInPauseFade() {
 	return *reinterpret_cast<bool*>(0x107A0F5);
@@ -25,8 +25,8 @@ bool IsLoadingNewGame() {
 }
 
 namespace QPC {
-	LARGE_INTEGER	liFrequency;
-	double			dLastCount = 0;
+	inline LARGE_INTEGER	liFrequency;
+	inline double			dLastCount = 0;
 
 	double GetTime() {
 		LARGE_INTEGER liCounter;
@@ -121,8 +121,8 @@ void ClampGameCounters(float& fClamp) {
 
 	if (IsInPauseFade() || fClamp < FLT_EPSILON) {
 		fMaxTime = fMaxTimeDefault;
-	} else if (fMaxTime > dMaxTimeLowerBoundaryS) {
-		fMaxTime = dMaxTimeLowerBoundaryS;
+	} else if (fMaxTime > fMaxTimeLowerBoundaryS) {
+		fMaxTime = fMaxTimeLowerBoundaryS;
 	}
 	
 }
@@ -131,7 +131,7 @@ public:
 	void TimeGlobalHook(int time) {
 		double dDelta = QPC::GetTimeDelta();
 
-		float fMaxTime = dMaxTimeLowerBoundaryS;
+		float fMaxTime = fMaxTimeLowerBoundaryS;
 		if (dDelta > FLT_EPSILON) {
 			if (dDelta < dDesiredMinMS) {
 				fMaxTime = dDelta > dDesiredMaxMS ? (dDelta / 1000.0) : dDesiredMaxS;
@@ -148,10 +148,12 @@ public:
 		BGSSaveLoadGame* pSaveLoad = BGSSaveLoadGame::GetSingleton();
 		bool bSaveLoading = pSaveLoad && pSaveLoad->IsLoading();
 		if (!bSaveLoading && !IsLoadingNewGame() && dDelta > 0.f) {
-			if (dDelta < dDesiredMinMS)
+			if (dDelta < dDesiredMinMS) {
 				fClamp = dDelta > dDesiredMaxMS ? dDelta : dDesiredMaxMS;
-			else
+			}
+			else {
 				fClamp = dDesiredMinMS;
+			}
 		}
 
 		ClampGameCounters(fClamp);
@@ -184,7 +186,6 @@ void WritePatches() {
 	dDesiredMinMS = 1000.0 / dMinFPSTolerance;
 	dDesiredMaxS = dDesiredMaxMS / 1000.0;
 	dDesiredMinS = dDesiredMinMS / 1000.0;
-	dMaxTimeLowerBoundaryMS = dMaxTimeLowerBoundaryS * 1000.0;
 	WriteRelCall(0x6E43C7, UInt32(TimerUpdateHook));
 
 	WriteRelJump(0x6EED54, UInt32(FastExit));
