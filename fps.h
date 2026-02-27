@@ -128,7 +128,7 @@ void ClampGameCounters(float& fClamp) {
 }
 class BSTimerSafe : public BSTimer {
 public:
-	void TimeGlobalHook() {
+	void TimeGlobalHook(int time) {
 		double dDelta = QPC::GetTimeDelta();
 
 		float fMaxTime = dMaxTimeLowerBoundaryS;
@@ -170,7 +170,10 @@ void FastExit()
 	TerminateProcess(GetCurrentProcess(), 0);
 }
 
-
+void __fastcall TimerUpdateHook(BSTimerSafe* a1, void* edx, int time)
+{
+	a1->TimeGlobalHook(time);
+}
 void WritePatches() {
 	
 	QPC::Initialize();
@@ -182,7 +185,7 @@ void WritePatches() {
 	dDesiredMaxS = dDesiredMaxMS / 1000.0;
 	dDesiredMinS = dDesiredMinMS / 1000.0;
 	dMaxTimeLowerBoundaryMS = dMaxTimeLowerBoundaryS * 1000.0;
-	ReplaceCallEx(0x6E43C7, &BSTimerSafe::TimeGlobalHook);
+	WriteRelCall(0x6E43C7, UInt32(TimerUpdateHook));
 
 	WriteRelJump(0x6EED54, UInt32(FastExit));
 	
