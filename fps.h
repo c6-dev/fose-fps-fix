@@ -3,7 +3,7 @@
 
 #pragma comment(lib, "winmm.lib")
 
-float* const g_fMaxTime = reinterpret_cast<float*>(0x1267B38);
+float* const g_fMaxTime = reinterpret_cast<float*>(0x10F2BE8);
 
 float fMaxTimeDefault = 0.f;
 constexpr float fTimerOffsetMult = 0.9875f;
