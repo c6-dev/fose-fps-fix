@@ -1,8 +1,5 @@
-#include "common/IPrefix.h"
-#include "common/PluginAPI.h"
-#include "SafeWrite.h"
-#include "calls.h"
-#include "fps.h"
+#include <PluginAPI.h>
+#include <fps.h>
 extern "C" {
 	__declspec(dllexport) bool FOSEPlugin_Query(const FOSEInterface* fose, PluginInfo* info) {
 		info->infoVersion = PluginInfo::kInfoVersion;

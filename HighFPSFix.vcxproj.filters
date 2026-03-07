@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="fose">
+    <Filter Include="common">
       <UniqueIdentifier>{92a4f350-f2ec-4fca-bdd3-927732d91b34}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -9,14 +9,23 @@
     <ClCompile Include="dllmain.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="common\SafeWrite.cpp">
-      <Filter>fose</Filter>
+      <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="game.cpp" />
+    <ClCompile Include="fps.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common\SafeWrite.h">
-      <Filter>fose</Filter>
+      <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="fps.h" />
     <ClInclude Include="calls.h" />
+    <ClInclude Include="game.h" />
+    <ClInclude Include="common\types.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="common\PluginAPI.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

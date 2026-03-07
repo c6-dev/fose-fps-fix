@@ -1,4 +1,5 @@
 #pragma once
+#include <types.h>
 // thread-safe template versions of ThisStdCall()
 
 template <typename T_Ret = uint32_t, typename ...Args>

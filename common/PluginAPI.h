@@ -1,11 +1,6 @@
 #pragma once
-
+#include <types.h>
 struct CommandInfo;
-struct ParamInfo;
-class TESObjectREFR;
-class Script;
-struct ScriptEventList;
-struct PluginInfo;
 
 typedef UInt32	PluginHandle;	// treat this as an opaque type
 

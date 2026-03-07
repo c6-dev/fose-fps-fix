@@ -1,5 +1,6 @@
 #pragma once
-#include "common/IPrefix.h"
+#include <types.h>
+#include <Windows.h>
 
 DECLSPEC_NOINLINE void SafeWrite8(UInt32 addr, UInt32 data);
 DECLSPEC_NOINLINE void SafeWrite16(UInt32 addr, UInt32 data);

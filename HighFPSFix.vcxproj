@@ -86,7 +86,7 @@
     </Link>
     <PostBuildEvent>
       <Message>Installing DLL...</Message>
-      <Command>copy "$(TargetPath)" "\ModOrganizer\Fallout 3\mods\High FPS Fix\fose\plugins\$(TargetFileName)"</Command>
+      <Command>copy "$(TargetPath)" "%LOCALAPPDATA%\ModOrganizer\Fallout 3\mods\High FPS Fix\fose\plugins\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -128,7 +128,7 @@
     <PostBuildEvent>
       <Message>
       </Message>
-      <Command>copy "$(TargetPath)" "\ModOrganizer\Fallout 3\mods\High FPS Fix\fose\plugins\$(TargetFileName)"</Command>
+      <Command>copy "$(TargetPath)" "%LOCALAPPDATA%\ModOrganizer\Fallout 3\mods\High FPS Fix\fose\plugins\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -139,12 +139,17 @@
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </ForcedIncludeFiles>
     </ClCompile>
+    <ClCompile Include="fps.cpp" />
+    <ClCompile Include="game.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="calls.h" />
+    <ClInclude Include="common\types.h" />
+    <ClInclude Include="common\PluginAPI.h" />
     <ClInclude Include="common\SafeWrite.h" />
     <ClInclude Include="fps.h" />
+    <ClInclude Include="game.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
