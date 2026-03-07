@@ -41,11 +41,11 @@ jobs:
       with:
         name: HighFPSFix-Release-${{ env.artifact_timestamp }}
         path: |
-          Release\ButcherPete.dll
+          Release\HighFPSFix.dll
 
     - name: Publish Debug
       uses: actions/upload-artifact@v4
       with:
         name: HighFPSFix-Debug-${{ env.artifact_timestamp }}
         path: |
-          Debug\ButcherPete.dll
+          Debug\HighFPSFix.dll
