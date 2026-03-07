@@ -10,4 +10,4 @@ Ported from [New Vegas Tick Fix](https://www.nexusmods.com/newvegas/mods/66537).
 
 Incompatible with [Fallout 3 Tick Fix](https://www.nexusmods.com/fallout3/mods/23542) and `bTickFix` option in [Stewie's Tweaks](https://www.nexusmods.com/fallout3/mods/23561) - their functionality is included.
 
-*Credits to carxt for the original code.*
+*Credits to carxt and WallSoGB for the original code.*
